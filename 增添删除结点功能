@@ -1,0 +1,266 @@
+//https://github.com/vladimircheng/bianary-tree/commit/a699023f6e797aa932fb7325e34c8e7b728df7df
+#include <iostream>
+#include<cctype>
+#include<string>
+#include<fstream>
+#include <string>
+using namespace std;
+class Node {
+public:
+    string data;
+    Node* left, * right;
+
+    Node(string data) {
+        this->data = data;
+        this->left = this->right = nullptr;
+    }
+};
+
+//===============================//
+//  类名(unword)--------作者：叶佳明
+//  功能：	停用词列表类
+//  主要用途：bool is_uw(string word)//判断此word是否为停用词
+//===============================//
+class unword
+{
+public:
+    unword()//从"useless_word.txt"读取停用词，完成列表初始化
+    {
+        head = new Node("");
+        string unwordline;
+        ifstream uw("useless_word.txt");
+
+        if (uw.is_open())
+        {
+            cout << "停用词列表:";
+            while (getline(uw, unwordline))
+            {
+                string filteredunwordline = "";
+
+                for (char c : unwordline)
+                {
+                    if (c != '#')
+                    {
+                        filteredunwordline += c;
+                    }
+                    else
+                    {
+                        cout << filteredunwordline << "#";
+                        insert(filteredunwordline);
+                        filteredunwordline = "";
+                    }
+                }
+            }
+
+            uw.close();
+        }
+        else
+        {
+            cout << "Unable to open uw" << endl;
+        }
+    }
+    ~unword()
+    {
+        Node* t;
+        while (head)
+        {
+            t = head;
+            head = head->right;
+            delete[]t;
+        }
+    }
+    void insert(string word)//增添停用词
+    {
+        Node* t = new Node(word);
+        t->right = head->right;
+        t->left = head;
+        head->right = t;
+    }
+    void show()//展示停用词
+    {
+        cout << "停用词列表:";
+        Node* t = head->right;
+        if (t == NULL) cout << "NULL" << endl;
+        while (t)
+        {
+            cout << t->data << "#";
+            t = t->right;
+        }
+    }
+    bool is_uw(string word)//判断此word是否为停用词
+    {
+        Node* t = head->right;
+        while (t)
+        {
+            if (t->data == word)
+                return 1;
+            t = t->right;
+        }
+        return 0;
+    }
+private:
+    Node* head;
+};
+
+class BinarySearchTree {
+private:
+    Node* root;
+
+    void insert(Node* node, string data) {
+        if (data < node->data) {
+            if (node->left == nullptr) {
+                node->left = new Node(data);
+            }
+            else {
+                insert(node->left, data);
+            }
+        }
+        else if (data > node->data) {
+            if (node->right == nullptr) {
+                node->right = new Node(data);
+            }
+            else {
+                insert(node->right, data);
+            }
+        }
+    }
+    void Deleteunword(Node* bt, unword& uw);//---功能：删除
+
+public:
+    BinarySearchTree() {
+        this->root = nullptr;
+    }
+
+    void insert(string data) {
+        if (this->root == nullptr) {
+            this->root = new Node(data);
+        }
+        else {
+            insert(this->root, data);
+        }
+    }
+
+    void DeleteBST(Node* p, Node* f);//---功能：删除
+    friend void Deleteunword(BinarySearchTree& a, unword& uw);//---功能：删除
+};
+
+//===============================//
+//  函数名(DeleteBST)--------作者：叶佳明
+//  功能：	BinarySearchTree类二叉排序树结点的删除
+//  参数：	p,f
+//			p：待删结点地址
+//			f：p的双亲地址
+//  返回：	无
+//===============================//
+void BinarySearchTree::DeleteBST(Node* p, Node* f)
+{
+    bool is_left = 1;
+    if (f->right == p) is_left = 0;
+
+    if ((p->left == NULL) && (p->right == NULL)) { //p为叶子
+        if (is_left)
+            f->left = NULL;
+        else
+            f->right = NULL;
+
+        delete[] p; return;
+    }
+    if (p->right == NULL) { //p只有左子树
+        if (is_left)
+            f->left = p->left;
+        else
+            f->right = p->left;
+        
+        delete[] p; return;
+    }
+    if (p->left == NULL) { //p只有右子树
+        if (is_left)
+            f->left = p->right; 
+        else
+            f->right = p->right;
+        
+        delete[] p; return;
+    }
+    Node* par = p, * s = p->right; //p的左右子树均不空
+    while (s->left != NULL) //查找最左下结点
+    {
+        par = s;
+        s = s->left;
+    }
+    p->data = s->data;
+    if (par == p) par->right = s->right; //特殊情况，p的右孩子无左子树
+    else par->left = s->right;
+    delete[] s;
+}
+
+//===============================//
+//  函数名(Deleteunword)--------作者：叶佳明
+//  功能：	BinarySearchTree类二叉排序树停用词结点的全部删除(根节点除外)
+//  参数：	bt,uw
+//			bt：当前子根节点地址
+//			uw：停用词列表
+//  返回：	无
+//===============================//
+void BinarySearchTree::Deleteunword(Node* bt, unword& uw)
+{
+    if (bt == nullptr) return; //递归调用的结束条件
+    else {
+        if (bt->left &&uw.is_uw(bt->left->data))
+        {
+            DeleteBST(bt->left, bt);
+        }
+        if (bt->right && uw.is_uw(bt->right->data))
+        {
+            DeleteBST(bt->right, bt);
+        }
+        Deleteunword(bt->left,uw); //前序递归遍历bt的左子树
+        Deleteunword(bt->right,uw); //前序递归遍历bt的右子树
+    }
+}
+
+//===============================//
+//  函数名(Deleteunword)--------作者：叶佳明
+//  功能：	二叉排序树的停用词结点的全部删除(BinarySearchTree类的友元)
+//  参数：	a,uw
+//			a：二叉排序树
+//			uw：停用词列表
+//  返回：	无
+//===============================//
+void Deleteunword(BinarySearchTree& a, unword& uw)
+{
+    Node* t = NULL;
+    while(uw.is_uw(a.root->data))
+        a.DeleteBST(a.root, t);
+    a.Deleteunword(a.root, uw);
+}
+
+int main()
+{
+    string line;
+    ifstream file("file.txt");
+
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
+            string filteredLine = "";
+
+            for (char c : line)
+            {
+                if (isalpha(c))
+                {
+                    filteredLine += tolower(c);
+                }
+            }
+
+            cout << filteredLine << endl;
+        }
+
+        file.close();
+    }
+    else
+    {
+        cout << "Unable to open file" << endl;
+    }
+    return 0;
+}
