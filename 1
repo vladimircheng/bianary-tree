@@ -1,0 +1,86 @@
+#include <iostream>
+#include<cctype>
+#include<string>
+#include<fstream>
+#include <string>
+using namespace std;
+class Node {
+public:
+    string data;
+    Node* left, * right;
+
+    Node(string data) {
+        this->data = data;
+        this->left = this->right = nullptr;
+    }
+};
+
+class BinarySearchTree {
+private:
+    Node* root;
+
+    void insert(Node* node, string data) {
+        if (data < node->data) {
+            if (node->left == nullptr) {
+                node->left = new Node(data);
+            }
+            else {
+                insert(node->left, data);
+            }
+        }
+        else if (data > node->data) {
+            if (node->right == nullptr) {
+                node->right = new Node(data);
+            }
+            else {
+                insert(node->right, data);
+            }
+        }
+    }
+
+public:
+    BinarySearchTree() {
+        this->root = nullptr;
+    }
+
+    void insert(string data) {
+        if (this->root == nullptr) {
+            this->root = new Node(data);
+        }
+        else {
+            insert(this->root, data);
+        }
+    }
+};
+
+int main()
+{
+    string line;
+    ifstream file("file.txt");
+
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
+            string filteredLine = "";
+
+            for (char c : line)
+            {
+                if (isalpha(c))
+                {
+                    filteredLine += tolower(c);
+                }
+            }
+
+            cout << filteredLine << endl;
+        }
+
+        file.close();
+    }
+    else
+    {
+        cout << "Unable to open file" << endl;
+    }
+
+    return 0;
+}
