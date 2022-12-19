@@ -1,0 +1,64 @@
+#include <iostream>
+#include<string>
+#include<fstream>
+using namespace std;
+class Node {
+public:
+    string data;
+    Node* left, * right;
+    int count;
+
+    Node(string data) {
+        this->data = data;
+        this->left = this->right = nullptr;
+    }
+};
+class BinarySearchTree {
+private:
+    Node* root;
+    Node* preOrderFindMax(Node*);//先序遍历查找出现次数最多的单词
+    Node*preOrderFindWord(Node*,string);//先序遍历查找单词
+    void inOrderSaveWord(Node*,string&);//中序保存单词
+public:
+    Node* FindMax(){return preOrderFindMax(root);}//先序遍历查找出现次数最多的单词接口
+    void FindWord(string target);//先序查找单词接口
+    void SaveWord(string textName);//中序保存单词接口，参数为文件名
+};
+Node* BinarySearchTree::preOrderFindMax(Node*p){//根左右
+    if(p== nullptr) return nullptr;
+    Node*maxn=p;
+    Node*l=preOrderFindMax(p->left);
+    Node*r=preOrderFindMax(p->right);
+    if(l)   maxn=(maxn->count>l->count)?maxn:l;
+    if(r)   maxn=(maxn->count>r->count)?maxn:r;
+    return maxn;
+}
+Node* BinarySearchTree::preOrderFindWord(Node*p,string target){
+    if(p== nullptr)  return nullptr;
+    if(p->data==target)  return p;
+    Node*l=preOrderFindWord(p->left,target);
+    if(l!= nullptr) return l;
+    Node*r=preOrderFindWord(p->right,target);
+    if(r!= nullptr) return r;
+    return nullptr;
+}
+void BinarySearchTree::FindWord(string target){
+    Node*tarNode=preOrderFindWord(root,target);
+    if(tarNode== nullptr)   return;
+    //位置单链表输出
+}
+void BinarySearchTree::inOrderSaveWord(Node*p,string& str){
+    if(p== nullptr) return;
+    inOrderSaveWord(p->left,str);
+    str+="单词为："+p->data+" "+"单词出现次数："+ to_string(p->count)+"单词出现位置依次为：";
+    //遍历单链表往后加入位置信息
+    str+="\n";
+    inOrderSaveWord(p->right,str);
+}
+void BinarySearchTree::SaveWord(string textName){
+    ofstream outfile;
+    outfile.open(textName);
+    string str="";
+    inOrderSaveWord(root,str);
+    outfile<<str;
+}
