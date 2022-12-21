@@ -1,0 +1,454 @@
+#include <iostream>
+#include<cctype>
+#include<string>
+#include<fstream>
+using namespace std;
+class BinarySearchTree;
+class unword;
+class posNode{//无首结点
+    int position;
+    posNode* next;
+public:
+    friend class Node;
+    friend class BinarySearchTree;
+    posNode(int x=-1,posNode* posNext= nullptr){position=x;next= posNext;}
+};
+class Node{
+    string data;
+    Node* left, * right;
+    int count;
+    posNode* posHead,*posTail;
+public:
+    friend class BinarySearchTree;
+    friend void Deleteunword(BinarySearchTree& a, unword& uw);
+    Node(string data="",int pos=-1);
+    void insert(int pos);
+    void show();
+    void release();
+    ~Node(){release();}
+};
+class unword{
+    struct unwordNode{
+        string data;
+        unwordNode*next;
+        unwordNode(string str=""){
+            data=str;
+            next= nullptr;
+        }
+    }*head;//有首结点
+public:
+    unword();
+    void insert(string word);//增添停用词
+    void show();//展示停用词
+    bool is_uw(string word);//判断此word是否为停用词
+    friend void Deleteunword(BinarySearchTree& a, unword& uw);
+    ~unword();
+};
+class BinarySearchTree {
+private:
+    Node* root;
+    void insert(Node* node, string data,int pos);
+    Node* preOrderFindMax(Node*);//先序遍历查找出现次数最多的单词
+    Node*preOrderFindWord(Node*,string);//先序遍历查找单词
+    void inOrderSaveWord(Node*,string&);//中序保存单词
+    void Deleteunword(Node* bt, unword& uw);//---功能：删除停用词
+    void release(Node*);
+public:
+    BinarySearchTree() {this->root = nullptr;}
+    void insert(string data,int pos);
+    Node* FindMax(){return preOrderFindMax(root);}//先序遍历查找出现次数最多的单词接口
+    Node* FindWord(string target);//先序查找单词接口
+    void SaveWord(string textName);//中序保存单词接口，参数为文件名
+    void DeleteBST(Node* p, Node* f);//---功能：删除子节点
+    friend void Deleteunword(BinarySearchTree& a, unword& uw);//---功能：删除全部停用词
+    void release(){release(root);root= nullptr;};
+};
+
+bool readAndBuild(BinarySearchTree&tree){
+    string textName;
+    cout<<"请输入文件绝对路径：";
+    cin>>textName;
+    ifstream file(textName);
+    if (!file.is_open()){
+        cout<<"文件打开失败"<<endl;
+        return false;
+    }
+
+    string line,tempstr="";
+    int cnt=1;
+    tree.release();
+
+    while (getline(file, line)){
+        for (char c : line){
+            if(c==' '){
+                tree.insert(tempstr,cnt++);
+                tempstr = "";
+            }
+            else if(isalpha(c)) tempstr += tolower(c);
+        }
+        if(tempstr!=""){
+            tree.insert(tempstr,cnt++);
+            tempstr = "";
+        }
+    }
+    cout<<"文件读入成功！"<<endl;
+    file.close();
+    return true;
+}
+bool readunword(BinarySearchTree&tree,unword&word){
+    string textName;
+    cout<<"请输入文件绝对路径：";
+    cin>>textName;
+    ifstream file(textName);
+    if (!file.is_open()){
+        cout<<"文件打开失败"<<endl;
+        return false;
+    }
+    string line,tempstr="";
+
+    while (getline(file, line)){
+        for (char c : line){
+            if(c==' '){
+                word.insert(tempstr);
+                tempstr = "";
+            }
+            else if(isalpha(c)) tempstr += tolower(c);
+        }
+        if(tempstr!=""){
+            word.insert(tempstr);
+            tempstr = "";
+        }
+    }
+    cout<<"文件读入成功！"<<endl;
+    file.close();
+    return true;
+}
+void findUnWord(unword &word){
+    word.show();
+    string str;
+    string a="";
+    cout<<"------------------"<<endl;
+    cout<<"请输入单词，查询该单词是否为停用词"<<endl;
+    cin>>str;
+    for(int i=0;i<str.size();i++){
+        if(isalpha(str[i])) a+=tolower(str[i]);
+    }
+    if(word.is_uw(a))   cout<<a<<"是停用词"<<endl;
+    else    cout<<a<<"不是停用词"<<endl;
+}
+void findAWord(BinarySearchTree tree){
+    string str="",a;
+    cout<<"请输入要查找的单词"<<endl;
+    cin>>a;
+    for(int i=0;i<a.size();i++){
+        if(tolower(a[i]))   str+= tolower(a[i]);
+    }
+    Node*p=tree.FindWord(str);
+    if(p== nullptr) cout<<"单词不存在"<<endl;
+    else p->show();
+}
+void saveWord(BinarySearchTree tree){
+    string textName;
+    cout<<"请输入文件绝对路径:"<<endl;
+    cin>>textName;
+    tree.SaveWord(textName);
+}
+void submenu2(){
+    cout<<"=============停用词操作==========="<<endl;
+    cout<<"1. 文件读入停用词"<<endl;
+    cout<<"2. 从查找树中删除停用词"<<endl;
+    cout<<"3. 查询停用词"<<endl;
+    cout<<"0. 返回上一层"<<endl;
+    cout<<"-------------------------------"<<endl;
+    cout<<"请输入您的选择："<<endl;
+}
+void menu(){
+    cout<<" =============菜单=============="<<endl;
+    cout<<"1. 读入单词文件"<<endl;
+    cout<<"2. 操作停用词"<<endl;
+    cout<<"3. 查找出现次数最多的单词"<<endl;
+    cout<<"4. 单个单词查找"<<endl;
+    cout<<"5. 多关键字查找"<<endl;
+    cout<<"6. 导出二叉查找树中序遍历的单词信息"<<endl;
+    cout<<"0. 退出"<<endl;
+    cout<<"-------------------------------"<<endl;
+    cout<<"请输入您的选择："<<endl;
+}
+
+int main()
+{
+    BinarySearchTree BTtree;
+    unword word;
+    Node*temp;
+    char ch;
+    menu();
+    while(cin>>ch&&ch!='0'){
+        switch(ch){
+            case '1':
+                readAndBuild(BTtree);
+                break;
+            case '2':
+                system("cls");
+                submenu2();
+                char ch1;
+                cin>>ch1;
+                if(ch1=='1')        readunword(BTtree,word);
+                else if(ch1=='2')   {
+                    Deleteunword(BTtree, word);
+                    cout<<"删除成功！"<<endl;
+                }
+                else if(ch1=='3')   findUnWord(word);
+                else if(ch1!='0')   cout<<"不合法输入"<<endl;
+                break;
+            case '3':
+                temp=BTtree.FindMax();
+                temp->show();
+                break;
+            case '4':
+                findAWord(BTtree);
+                break;
+            case '5':
+                break;
+            case '6':
+                saveWord(BTtree);
+                break;
+            default:cout<<"输入不合法，请重新输入"<<endl;
+        }
+        system("pause");
+        system("cls");
+        menu();
+    }
+    cout<<"再见！"<<endl;
+    system("pause");
+}
+
+Node::Node(string data,int pos) {
+    this->data = data;
+    this->left = this->right = nullptr;
+    posTail=posHead=new posNode(pos);
+    count=1;
+}
+void Node::insert(int pos){
+    posTail->next=new posNode(pos);
+    posTail=posTail->next;
+    count++;
+}
+void Node::show(){
+    cout<<"单词："<<data<<endl;
+    cout<<"出现次数："<<count<<endl;
+    cout<<"出现位置为：";
+    posNode*p=posHead;
+    while(p){
+        cout<<p->position<<" ";
+        p=p->next;
+    }
+    cout<<endl;
+}
+void Node::release(){
+    posNode*temp=posHead;
+    while(posHead){
+        temp=posHead;
+        posHead=posHead->next;
+        delete temp;
+    }
+    left=right=nullptr;
+    posHead=posTail= nullptr;
+}
+
+unword::unword(){//从"useless_word.txt"读取停用词，完成列表初始化
+    head = new unwordNode("");
+}
+//===============================//
+//  类名(unword)--------作者：叶佳明
+//  功能：	停用词列表类
+//  主要用途：bool is_uw(string word)//判断此word是否为停用词
+//===============================/
+bool unword::is_uw(string word){
+    unwordNode* t = head->next;
+    while (t)
+    {
+        if (t->data == word)
+            return true;
+        t = t->next;
+    }
+    return false;
+}
+void unword::show(){//展示停用词
+    cout << "停用词列表:";
+    unwordNode* t = head->next;
+    if (t == NULL) cout << "NULL" << endl;
+    while (t){
+        cout << t->data << "#";
+        t = t->next;
+    }
+    cout << endl;
+}
+void unword::insert(string word){//增添停用词
+    unwordNode* t = new unwordNode(word);
+    t->next=head->next;
+    head->next=t;
+}
+unword::~unword(){
+    unwordNode* t;
+    while (head)
+    {
+        t = head;
+        head = head->next;
+        delete t;
+    }
+}
+
+void BinarySearchTree::insert(Node* node, string data,int pos) {
+    if (data < node->data) {
+        if (node->left == nullptr)  node->left = new Node(data,pos);
+        else    insert(node->left, data,pos);
+    }
+    else if (data > node->data) {
+        if (node->right == nullptr) node->right = new Node(data,pos);
+        else    insert(node->right, data,pos);
+    }
+    else{
+        node->insert(pos);
+    }
+}
+void BinarySearchTree::insert(string data,int pos) {
+    if (this->root == nullptr)  this->root = new Node(data,pos);
+    else    insert(this->root, data,pos);
+}
+Node* BinarySearchTree::preOrderFindMax(Node*p){//根左右
+    if(p== nullptr) return nullptr;
+    Node*maxn=p;
+    Node*l=preOrderFindMax(p->left);
+    Node*r=preOrderFindMax(p->right);
+    if(l)   maxn=(maxn->count>l->count)?maxn:l;
+    if(r)   maxn=(maxn->count>r->count)?maxn:r;
+    return maxn;
+}
+Node* BinarySearchTree::preOrderFindWord(Node*p,string target){
+    if(p== nullptr)  return nullptr;
+    if(p->data==target)  return p;
+    Node*l=preOrderFindWord(p->left,target);
+    if(l!= nullptr) return l;
+    Node*r=preOrderFindWord(p->right,target);
+    if(r!= nullptr) return r;
+    return nullptr;
+}
+Node* BinarySearchTree::FindWord(string target){
+    Node*tarNode=preOrderFindWord(root,target);
+    if(tarNode== nullptr)   return nullptr;
+    return tarNode;
+}
+void BinarySearchTree::inOrderSaveWord(Node*p,string& str){
+    if(p== nullptr) return;
+    inOrderSaveWord(p->left,str);
+    str+="单词："+p->data+"    "+"出现次数："+ to_string(p->count)+"    出现位置：";
+    posNode*posp=p->posHead;
+    while(posp){
+        str+= to_string(posp->position)+"  ";
+        posp=posp->next;
+    }
+    str+="\n";
+    inOrderSaveWord(p->right,str);
+}
+void BinarySearchTree::SaveWord(string textName){
+    ofstream outfile;
+    outfile.open(textName);
+    string str="";
+    inOrderSaveWord(root,str);
+    outfile<<str;
+}
+//===============================//
+//  函数名(DeleteBST)--------作者：叶佳明
+//  功能：	BinarySearchTree类二叉排序树结点的删除
+//  参数：	p,f
+//			p：待删结点地址
+//			f：p的双亲地址
+//  返回：	无
+//===============================/
+void BinarySearchTree::DeleteBST(Node* p, Node* f)
+{
+    bool is_left = 1;
+    if (f->right == p) is_left = 0;
+
+    if ((p->left == NULL) && (p->right == NULL)) { //p为叶子
+        if (is_left)
+            f->left = NULL;
+        else
+            f->right = NULL;
+
+        delete p; return;
+    }
+    if (p->right == NULL) { //p只有左子树
+        if (is_left)
+            f->left = p->left;
+        else
+            f->right = p->left;
+
+        delete p; return;
+    }
+    if (p->left == NULL) { //p只有右子树
+        if (is_left)
+            f->left = p->right;
+        else
+            f->right = p->right;
+
+        delete p; return;
+    }
+    Node* par = p, * s = p->right; //p的左右子树均不空
+    while (s->left != NULL) //查找最左下结点
+    {
+        par = s;
+        s = s->left;
+    }
+    p->data = s->data;
+    if (par == p) par->right = s->right; //特殊情况，p的右孩子无左子树
+    else par->left = s->right;
+    delete s;
+}
+//===============================//
+//  函数名(Deleteunword)--------作者：叶佳明
+//  功能：	BinarySearchTree类二叉排序树停用词结点的全部删除(根节点除外)
+//  参数：	bt,uw
+//			bt：当前子根节点地址
+//			uw：停用词列表
+//  返回：	无
+//===============================//
+void BinarySearchTree::Deleteunword(Node* bt, unword& uw)
+{
+    if (bt == nullptr) return; //递归调用的结束条件
+    else {
+        if (bt->left && uw.is_uw(bt->left->data))
+        {
+            DeleteBST(bt->left, bt);
+        }
+        if (bt->right && uw.is_uw(bt->right->data))
+        {
+            DeleteBST(bt->right, bt);
+        }
+        Deleteunword(bt->left, uw); //前序递归遍历bt的左子树
+        Deleteunword(bt->right, uw); //前序递归遍历bt的右子树
+    }
+}
+
+//===============================//
+//  函数名(Deleteunword)--------作者：叶佳明
+//  功能：	二叉排序树的停用词结点的全部删除(BinarySearchTree类的友元)
+//  参数：	a,uw
+//			a：二叉排序树
+//			uw：停用词列表
+//  返回：	无
+//===============================//
+void Deleteunword(BinarySearchTree& a, unword& uw)
+{
+    Node* t = NULL;
+    while (uw.is_uw(a.root->data))
+        a.DeleteBST(a.root, t);
+    a.Deleteunword(a.root, uw);
+}
+void BinarySearchTree::release(Node*p){
+    if(p== nullptr) return;
+    release(p->left);
+    release(p->right);
+    p->release();
+    p= nullptr;
+}
